@@ -1,0 +1,28 @@
+{
+  "name": "real-screen-reader",
+  "version": "1.0.0",
+  "description": "A screen reader application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "build": "electron-builder build",
+    "package": "electron-builder --dir"
+  },
+  "build": {
+    "appId": "com.real-screen-reader",
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility"
+    }
+  },
+  "devDependencies": {
+    "electron": "^29.1.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "electron-squirrel-startup": "^1.0.1"
+  }
+}

@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      # X11 socket for display
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      # Pulse audio for sound
+      - /run/user/1000/pulse:/run/user/1000/pulse
+    environment:
+      - DISPLAY=${DISPLAY}
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      # Development mode
+      - NODE_ENV=development
+    network_mode: host
+    privileged: true  # Needed for screen capture
+    devices:
+      - /dev/dri:/dev/dri  # For hardware acceleration
+
+volumes:
+  node_modules: 

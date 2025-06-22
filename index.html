@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Screen Reader</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="control-panel">
+            <button class="control-btn" id="slowBtn" title="Slower">⏪</button>
+            <button class="control-btn" id="playBtn" title="Play/Pause">▶</button>
+            <button class="control-btn" id="stopBtn" title="Stop">⏹</button>
+            <button class="control-btn" id="fastBtn" title="Faster">⏩</button>
+            <button class="control-btn" id="settingsBtn" title="Settings">⚙</button>
+        </div>
+        <div class="options-panel">
+            <button class="option-btn" id="selectRegion">Select Region</button>
+            <select class="option-select" id="voiceSelect">
+                <option value="default">Default Voice</option>
+            </select>
+        </div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html> 
