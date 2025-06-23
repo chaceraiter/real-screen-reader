@@ -23,6 +23,8 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
+    "electron-squirrel-startup": "^1.0.1",
+    "node-tesseract-ocr": "^2.2.1",
+    "tesseract.js": "^6.0.1"
   }
 }

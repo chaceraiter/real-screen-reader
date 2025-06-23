@@ -9,7 +9,7 @@ A standalone screen reader application built with Electron that can capture and 
 Real Screen Reader is designed to be a lightweight, efficient tool for reading text from any part of your screen. Key features include:
 - Region selection with visual feedback
 - Real-time screen capture
-- OCR text extraction (planned)
+- OCR text extraction using Tesseract.js
 - Natural text-to-speech (planned)
 - Customizable reading preferences (planned)
 
@@ -17,9 +17,19 @@ Real Screen Reader is designed to be a lightweight, efficient tool for reading t
 
 The application currently supports:
 - Basic Electron window management
-- Transparent window overlays
+- Transparent window overlays for region selection
 - Screen region selection with visual feedback
 - Real-time preview of captured regions
+- Basic OCR functionality using Tesseract.js
+- Proper coordinate handling for multi-monitor setups
+- Window dragging and basic window controls
+
+### Recent Progress
+- Migrated from Tauri to Electron for better screen capture support
+- Implemented accurate region selection with proper coordinate handling
+- Added OCR capabilities with Tesseract.js integration
+- Fixed window dragging issues and coordinate offsets
+- Created robust startup script with environment handling
 
 ## Development Setup
 
@@ -27,11 +37,24 @@ The application currently supports:
 - Node.js (v20 recommended)
 - Conda environment named 'screen-reader'
 - Linux with X11 (currently tested on Ubuntu)
+- Tesseract.js (installed via npm)
 
 ### Environment Variables
-The application requires specific environment variables for proper functionality:
-- `DISPLAY=:0` - For X11 display access
-- `LIBGL_ALWAYS_SOFTWARE=1` - For software rendering support
+The application supports configuration through environment variables. You can set these in your shell or create a `.env` file in the project root:
+
+```bash
+# Conda configuration
+CONDA_HOME=$HOME/miniconda        # Path to your conda installation
+CONDA_ENV_NAME=screen-reader      # Name of the conda environment to use
+
+# Display settings
+DISPLAY=:0                        # X11 display to use
+LIBGL_ALWAYS_SOFTWARE=1          # Force software rendering
+
+# Application settings (future use)
+OCR_LANG=eng                     # Default OCR language
+TTS_ENGINE=system               # Text-to-speech engine to use
+```
 
 ### Getting Started
 
@@ -46,25 +69,28 @@ The application requires specific environment variables for proper functionality
    npm install
    ```
 
-3. Run the setup script:
+3. Create and activate conda environment:
    ```bash
-   ./setup.sh
+   conda create -n screen-reader python=3.8
+   conda activate screen-reader
    ```
 
 4. Start the application:
    ```bash
-   npm run dev
+   ./start.sh
    ```
 
 ## Project Structure
 ```
 real-screen-reader/
-├── main.js           # Electron main process
-├── renderer.js       # Electron renderer process
-├── region-selector.js # Region selection functionality
-├── index.html        # Main application window
-├── styles.css        # Application styles
-└── setup.sh         # Environment setup script
+├── main.js              # Electron main process
+├── renderer.js          # Electron renderer process
+├── region-selector.js   # Region selection functionality
+├── index.html          # Main application window
+├── styles.css          # Application styles
+├── start.sh           # Application startup script
+└── src/
+    └── ocr.js         # OCR functionality
 ```
 
 ## For AI Agents
@@ -77,11 +103,18 @@ This project aims to create a screen reader that's more flexible and user-friend
    - More mature screen capture APIs
    - Better documentation and community support
    - Easier integration with native features
+   - Better support for transparent windows and region selection
 
 2. **Architecture**:
    - Main process (`main.js`) handles window management and IPC
    - Renderer process (`renderer.js`) manages UI and user interactions
    - Region selector runs in a separate transparent window
+   - OCR processing handled in a dedicated module
+
+3. **Coordinate System**:
+   - Uses screen's work area to handle system UI elements
+   - Accounts for multi-monitor setups
+   - Properly scales coordinates between different contexts
 
 ### Development Guidelines
 1. **Code Style**:
@@ -101,29 +134,50 @@ This project aims to create a screen reader that's more flexible and user-friend
    - Verify screen capture in various scenarios
    - Check memory usage during extended sessions
    - Validate accessibility features
+   - Test with different monitor configurations
+
+### Current Challenges
+1. **OCR Accuracy**:
+   - Need to improve text recognition accuracy
+   - Consider preprocessing steps for better results
+   - Handle different text colors and backgrounds
+
+2. **Performance**:
+   - Optimize screen capture frequency
+   - Reduce memory usage during continuous capture
+   - Handle large regions efficiently
+
+3. **UI Improvements**:
+   - Add more window controls (minimize, maximize)
+   - Improve region selection visual feedback
+   - Add keyboard shortcuts for common actions
 
 ### Next Steps
-1. **OCR Integration**:
-   - Research and select OCR library
-   - Implement text extraction from captured regions
-   - Add text preprocessing for better accuracy
+1. **OCR Enhancements**:
+   - Add image preprocessing options
+   - Implement text post-processing
+   - Add support for different languages
+   - Optimize OCR performance
 
 2. **Text-to-Speech**:
-   - Evaluate TTS engines
+   - Research and select TTS engine
    - Implement voice selection
    - Add reading speed controls
    - Support natural-sounding pronunciation
+   - Handle different languages
 
 3. **User Experience**:
    - Add keyboard shortcuts
-   - Implement region presets
+   - Implement region presets/favorites
    - Create settings panel
    - Add progress indicators
+   - Improve error handling and user feedback
 
-4. **Performance**:
+4. **Performance Optimization**:
+   - Implement caching for frequently read regions
    - Optimize screen capture
-   - Minimize memory usage
-   - Reduce CPU load during idle
+   - Add batch processing for multiple regions
+   - Improve memory management
 
 ## Contributing
 Contributions are welcome! Please read our contributing guidelines before submitting pull requests.

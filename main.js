@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, desktopCapturer, screen } = require('electron');
 const path = require('path');
 const RegionSelector = require('./region-selector');
+const ocrManager = require('./src/ocr');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -38,15 +39,54 @@ function createWindow() {
   ipcMain.on('start-region-selection', async () => {
     await regionSelector.start();
   });
+
+  // Handle get sources request
+  ipcMain.handle('get-sources', async () => {
+    try {
+      const displays = screen.getAllDisplays();
+      const primaryDisplay = screen.getPrimaryDisplay();
+      
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: {
+          width: primaryDisplay.size.width,
+          height: primaryDisplay.size.height
+        }
+      });
+      return sources;
+    } catch (error) {
+      console.error('Error getting sources:', error);
+      throw error;
+    }
+  });
+
+  // Handle OCR request
+  ipcMain.handle('perform-ocr', async (event, imagePath) => {
+    try {
+      const text = await ocrManager.recognizeText(imagePath);
+      return { success: true, text };
+    } catch (error) {
+      console.error('OCR error:', error);
+      return { success: false, error: error.message };
+    }
+  });
 }
 
 // This method will be called when Electron has finished initialization
 app.whenReady()
-  .then(() => {
+  .then(async () => {
     // Check if we have a display
     if (!process.env.DISPLAY) {
       console.log('No display detected. Setting to :0');
       process.env.DISPLAY = ':0';
+    }
+    
+    // Initialize OCR
+    try {
+      await ocrManager.initialize();
+      console.log('OCR initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize OCR:', error);
     }
     
     createWindow();
@@ -63,7 +103,10 @@ app.whenReady()
   });
 
 // Quit when all windows are closed.
-app.on('window-all-closed', () => {
+app.on('window-all-closed', async () => {
+  // Cleanup OCR resources
+  await ocrManager.terminate();
+  
   if (process.platform !== 'darwin') {
     app.quit();
   }

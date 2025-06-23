@@ -16,19 +16,36 @@
             background: rgba(0, 255, 0, 0.1);
             display: none;
         }
+        #instructions {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-family: system-ui, -apple-system, sans-serif;
+            font-size: 14px;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div id="selection"></div>
+    <div id="instructions">Click and drag to select a region. Press Enter to confirm or Escape to cancel.</div>
     <script>
         const { ipcRenderer } = require('electron');
         
         const selection = document.getElementById('selection');
         let isSelecting = false;
+        let hasSelection = false;
         let startX, startY;
+        let currentBounds = null;
 
         document.addEventListener('mousedown', (e) => {
             isSelecting = true;
+            hasSelection = false;
             startX = e.clientX;
             startY = e.clientY;
             selection.style.display = 'block';
@@ -36,6 +53,7 @@
             selection.style.top = startY + 'px';
             selection.style.width = '0';
             selection.style.height = '0';
+            currentBounds = null;
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -56,21 +74,28 @@
         document.addEventListener('mouseup', (e) => {
             if (!isSelecting) return;
             isSelecting = false;
+            hasSelection = true;
             
-            const bounds = {
+            currentBounds = {
                 x: parseInt(selection.style.left),
                 y: parseInt(selection.style.top),
                 width: parseInt(selection.style.width),
                 height: parseInt(selection.style.height)
             };
-            
-            ipcRenderer.send('selection-complete', bounds);
         });
 
-        // Cancel selection with Escape key
+        // Handle keyboard events
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
+                // Cancel selection
+                selection.style.display = 'none';
+                isSelecting = false;
+                hasSelection = false;
+                currentBounds = null;
                 ipcRenderer.send('selection-cancel');
+            } else if (e.key === 'Enter' && hasSelection && currentBounds) {
+                // Confirm selection
+                ipcRenderer.send('selection-complete', currentBounds);
             }
         });
     </script>

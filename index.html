@@ -1,25 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Screen Reader</title>
+    <title>Real Screen Reader</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
-        <div class="control-panel">
-            <button class="control-btn" id="slowBtn" title="Slower">⏪</button>
-            <button class="control-btn" id="playBtn" title="Play/Pause">▶</button>
-            <button class="control-btn" id="stopBtn" title="Stop">⏹</button>
-            <button class="control-btn" id="fastBtn" title="Faster">⏩</button>
-            <button class="control-btn" id="settingsBtn" title="Settings">⚙</button>
+        <div class="controls">
+            <button id="selectRegion">Select Region</button>
+            <div class="spacer"></div>
+            <button id="slowBtn">-</button>
+            <span id="speedDisplay">1.0x</span>
+            <button id="fastBtn">+</button>
+            <button id="playBtn">▶</button>
+            <button id="stopBtn">■</button>
+            <button id="settingsBtn">⚙</button>
         </div>
-        <div class="options-panel">
-            <button class="option-btn" id="selectRegion">Select Region</button>
-            <select class="option-select" id="voiceSelect">
-                <option value="default">Default Voice</option>
-            </select>
+        
+        <div class="preview-container"></div>
+        
+        <div class="controls">
+            <button id="startReading" disabled>Start Reading</button>
         </div>
     </div>
+    
     <script src="renderer.js"></script>
 </body>
 </html> 
