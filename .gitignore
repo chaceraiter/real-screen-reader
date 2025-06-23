@@ -48,4 +48,10 @@ conda-env/
 
 # Application specific
 .ocr-cache/
-user-settings.json 
+user-settings.json
+
+# Vite
+.vite/
+
+# Eng. traineddata
+eng.traineddata 

@@ -21,7 +21,9 @@ function createWindow() {
     },
     frame: true,  // Keep the title bar
     autoHideMenuBar: true,  // Hide the menu bar
-    resizable: false,  // Make it non-resizable
+    resizable: true,  // Allow resizing
+    minWidth: 400,    // Set minimum width
+    maxWidth: 400,    // Set maximum width to keep width fixed
     titleBarStyle: 'hiddenInset',  // Minimal title bar
     backgroundColor: '#2f2f2f'  // Dark background
   });
