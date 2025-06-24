@@ -54,4 +54,7 @@ user-settings.json
 .vite/
 
 # Eng. traineddata
-eng.traineddata 
+eng.traineddata
+
+# Development auxiliary tools
+dev-aux/ 
