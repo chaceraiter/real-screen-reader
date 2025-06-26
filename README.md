@@ -30,6 +30,9 @@ The application currently supports:
 - Added OCR capabilities with Tesseract.js integration
 - Fixed window dragging issues and coordinate offsets
 - Created robust startup script with environment handling
+- Added Piper TTS integration for natural-sounding voice generation
+- Switched from SPICE to PulseAudio for more reliable cross-platform audio streaming
+- Added development tools for managing audio streaming setup
 
 ## Development Setup
 
@@ -38,6 +41,24 @@ The application currently supports:
 - Conda environment named 'screen-reader'
 - Linux with X11 (currently tested on Ubuntu)
 - Tesseract.js (installed via npm)
+- For Mac development:
+  - Homebrew
+  - PulseAudio (`brew install pulseaudio`)
+
+### Development Tools
+The project includes several development auxiliary tools in the `dev-aux/` directory:
+
+1. **Audio Streaming Setup** (`dev-aux/setup-audio-stream.sh`):
+   - Facilitates audio streaming from the VM to host machine (especially useful for Mac development)
+   - Sets up SSH tunneling for PulseAudio
+   - Manages the connection lifecycle
+   - Usage:
+     ```bash
+     # On your Mac
+     ./dev-aux/setup-audio-stream.sh
+     ```
+   - Keep the terminal window open while you need audio streaming
+   - Press Enter to stop the audio streaming
 
 ### Environment Variables
 The application supports configuration through environment variables. You can set these in your shell or create a `.env` file in the project root:
@@ -105,13 +126,19 @@ This project aims to create a screen reader that's more flexible and user-friend
    - Easier integration with native features
    - Better support for transparent windows and region selection
 
-2. **Architecture**:
+2. **Audio Streaming**: Chose PulseAudio over SPICE for VM audio streaming:
+   - More reliable cross-platform support, especially for macOS
+   - Better control over audio routing and configuration
+   - Simpler setup through SSH tunneling
+   - Consistent audio quality across different environments
+
+3. **Architecture**:
    - Main process (`main.js`) handles window management and IPC
    - Renderer process (`renderer.js`) manages UI and user interactions
    - Region selector runs in a separate transparent window
    - OCR processing handled in a dedicated module
 
-3. **Coordinate System**:
+4. **Coordinate System**:
    - Uses screen's work area to handle system UI elements
    - Accounts for multi-monitor setups
    - Properly scales coordinates between different contexts
