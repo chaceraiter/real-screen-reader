@@ -6,12 +6,23 @@ class OCRManager {
     constructor() {
         this.worker = null;
         this.isInitialized = false;
+        this.trainedDataPath = path.join(__dirname, '..', 'resources', 'eng.traineddata');
     }
 
     async initialize() {
         if (this.isInitialized) return;
 
         try {
+            // Check if trained data exists
+            if (!fs.existsSync(this.trainedDataPath)) {
+                console.error('OCR trained data not found at:', this.trainedDataPath);
+                console.log('Current directory:', __dirname);
+                console.log('Absolute path:', path.resolve(this.trainedDataPath));
+                throw new Error('OCR trained data not found at: ' + this.trainedDataPath);
+            }
+
+            console.log('Initializing OCR with trained data at:', this.trainedDataPath);
+            // Create worker with language specified directly
             this.worker = await createWorker('eng');
             this.isInitialized = true;
             console.log('OCR initialized successfully');

@@ -3,19 +3,47 @@
 <head>
     <title>Select Region</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            background: rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-            cursor: crosshair;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
         }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: transparent;
+        }
+        
+        body {
+            cursor: crosshair;
+            position: relative;
+        }
+        
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+        }
+        
         #selection {
             position: absolute;
             border: 2px solid #00ff00;
             background: rgba(0, 255, 0, 0.1);
             display: none;
+            pointer-events: none;
+            z-index: 1000;
         }
+        
         #instructions {
             position: fixed;
             top: 20px;
@@ -28,10 +56,12 @@
             font-family: system-ui, -apple-system, sans-serif;
             font-size: 14px;
             pointer-events: none;
+            z-index: 1001;
         }
     </style>
 </head>
 <body>
+    <div id="overlay"></div>
     <div id="selection"></div>
     <div id="instructions">Click and drag to select a region. Press Enter to confirm or Escape to cancel.</div>
     <script>
@@ -43,7 +73,31 @@
         let startX, startY;
         let currentBounds = null;
 
+        console.log('Region selector page loaded');
+
+        // Prevent default browser behaviors
+        document.addEventListener('contextmenu', (e) => {
+            console.log('Context menu prevented');
+            e.preventDefault();
+        });
+        
+        document.addEventListener('selectstart', (e) => {
+            console.log('Text selection prevented');
+            e.preventDefault();
+        });
+        
+        document.addEventListener('dragstart', (e) => {
+            console.log('Drag prevented');
+            e.preventDefault();
+        });
+
         document.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) {
+                console.log('Ignoring non-left click:', e.button);
+                return;
+            }
+            
+            console.log('Mouse down at:', e.clientX, e.clientY);
             isSelecting = true;
             hasSelection = false;
             startX = e.clientX;
@@ -54,6 +108,8 @@
             selection.style.width = '0';
             selection.style.height = '0';
             currentBounds = null;
+            
+            e.preventDefault();
         });
 
         document.addEventListener('mousemove', (e) => {
@@ -69,25 +125,51 @@
             selection.style.top = Math.min(startY, currentY) + 'px';
             selection.style.width = width + 'px';
             selection.style.height = height + 'px';
+            
+            e.preventDefault();
         });
 
         document.addEventListener('mouseup', (e) => {
             if (!isSelecting) return;
-            isSelecting = false;
-            hasSelection = true;
+            if (e.button !== 0) {
+                console.log('Ignoring non-left mouse up:', e.button);
+                return;
+            }
             
-            currentBounds = {
-                x: parseInt(selection.style.left),
-                y: parseInt(selection.style.top),
-                width: parseInt(selection.style.width),
-                height: parseInt(selection.style.height)
-            };
+            console.log('Mouse up at:', e.clientX, e.clientY);
+            isSelecting = false;
+            
+            const width = parseInt(selection.style.width);
+            const height = parseInt(selection.style.height);
+            
+            console.log('Selection dimensions:', width, height);
+            
+            // Only consider it a selection if the area is large enough
+            if (width > 10 && height > 10) {
+                hasSelection = true;
+                currentBounds = {
+                    x: parseInt(selection.style.left),
+                    y: parseInt(selection.style.top),
+                    width: width,
+                    height: height
+                };
+                console.log('Selection created:', currentBounds);
+            } else {
+                console.log('Selection too small, ignoring');
+                selection.style.display = 'none';
+                hasSelection = false;
+                currentBounds = null;
+            }
+            
+            e.preventDefault();
         });
 
         // Handle keyboard events
         document.addEventListener('keydown', (e) => {
+            console.log('Key pressed:', e.key);
             if (e.key === 'Escape') {
                 // Cancel selection
+                console.log('Cancelling selection');
                 selection.style.display = 'none';
                 isSelecting = false;
                 hasSelection = false;
@@ -95,8 +177,10 @@
                 ipcRenderer.send('selection-cancel');
             } else if (e.key === 'Enter' && hasSelection && currentBounds) {
                 // Confirm selection
+                console.log('Confirming selection:', currentBounds);
                 ipcRenderer.send('selection-complete', currentBounds);
             }
+            e.preventDefault();
         });
     </script>
 </body>

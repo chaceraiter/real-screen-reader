@@ -1,38 +1,68 @@
 # Real Screen Reader
 
-A standalone screen reader application built with Electron that can capture and read text from any screen region. This project was originally started with Tauri but has been migrated to Electron for better screen capture capabilities and cross-platform compatibility.
+A screen reader application built with Electron that provides text-to-speech functionality for selected screen regions.
 
-> **Note**: The original Tauri-based implementation has been archived and can be found at [real-screen-reader-tauri](https://github.com/your-username/real-screen-reader-tauri).
+## Quick Start
 
-## Project Overview
+### Running the Main Application
+1. Activate the conda environment:
+   ```bash
+   conda activate screen-reader
+   ```
 
-Real Screen Reader is designed to be a lightweight, efficient tool for reading text from any part of your screen. Key features include:
-- Region selection with visual feedback
-- Real-time screen capture
-- OCR text extraction using Tesseract.js
-- Natural text-to-speech (planned)
-- Customizable reading preferences (planned)
+2. Start the application:
+   ```bash
+   ./scripts/start.sh
+   ```
 
-## Current State
+### Running the Audio Test Server
+1. Activate the conda environment:
+   ```bash
+   conda activate screen-reader
+   ```
 
-The application currently supports:
-- Basic Electron window management
-- Transparent window overlays for region selection
-- Screen region selection with visual feedback
-- Real-time preview of captured regions
-- Basic OCR functionality using Tesseract.js
-- Proper coordinate handling for multi-monitor setups
-- Window dragging and basic window controls
+2. Start the test server:
+   ```bash
+   npm run test-audio
+   ```
 
-### Recent Progress
-- Migrated from Tauri to Electron for better screen capture support
-- Implemented accurate region selection with proper coordinate handling
-- Added OCR capabilities with Tesseract.js integration
-- Fixed window dragging issues and coordinate offsets
-- Created robust startup script with environment handling
-- Added Piper TTS integration for natural-sounding voice generation
-- Switched from SPICE to PulseAudio for more reliable cross-platform audio streaming
-- Added development tools for managing audio streaming setup
+3. Access the test interface:
+   ```
+   http://<vm-ip>:3000
+   ```
+
+## Project Structure
+
+```
+real-screen-reader/
+├── src/                      # All source code
+│   ├── main/                 # Main process code
+│   │   ├── index.js         # Main entry point
+│   │   ├── ocr/             # OCR-related code
+│   │   ├── tts/             # TTS-related code
+│   │   └── window/          # Window management code
+│   ├── renderer/            # Renderer process code
+│   │   ├── index.js         # Renderer entry point
+│   │   ├── components/      # UI components
+│   │   ├── styles/          # CSS files
+│   │   └── utils/           # Renderer utilities
+│   └── shared/              # Shared code between main and renderer
+├── public/                  # Static assets
+│   ├── index.html          # Main window HTML
+│   └── styles/             # Global styles
+├── build/                   # Build-related files
+│   ├── icons/              # Application icons
+│   └── scripts/            # Build scripts
+├── tools/                   # Development tools
+│   └── audio-test/         # Audio testing utility
+├── docker/                  # Docker configuration
+├── docs/                    # Documentation
+├── scripts/                 # Installation and setup scripts
+├── dist/                    # Build output
+└── resources/              # Application resources
+    ├── voices/             # TTS voice models
+    └── eng.traineddata     # OCR language data
+```
 
 ## Development Setup
 
@@ -45,20 +75,24 @@ The application currently supports:
   - Homebrew
   - PulseAudio (`brew install pulseaudio`)
 
-### Development Tools
-The project includes several development auxiliary tools in the `dev-aux/` directory:
+### Initial Setup
 
-1. **Audio Streaming Setup** (`dev-aux/setup-audio-stream.sh`):
-   - Facilitates audio streaming from the VM to host machine (especially useful for Mac development)
-   - Sets up SSH tunneling for PulseAudio
-   - Manages the connection lifecycle
-   - Usage:
-     ```bash
-     # On your Mac
-     ./dev-aux/setup-audio-stream.sh
-     ```
-   - Keep the terminal window open while you need audio streaming
-   - Press Enter to stop the audio streaming
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd real-screen-reader
+   ```
+
+2. Create and activate conda environment:
+   ```bash
+   conda create -n screen-reader python=3.8
+   conda activate screen-reader
+   ```
+
+3. Install dependencies:
+   ```bash
+   npm run setup
+   ```
 
 ### Environment Variables
 The application supports configuration through environment variables. You can set these in your shell or create a `.env` file in the project root:
@@ -72,142 +106,64 @@ CONDA_ENV_NAME=screen-reader      # Name of the conda environment to use
 DISPLAY=:0                        # X11 display to use
 LIBGL_ALWAYS_SOFTWARE=1          # Force software rendering
 
-# Application settings (future use)
+# Application settings
 OCR_LANG=eng                     # Default OCR language
 TTS_ENGINE=system               # Text-to-speech engine to use
 ```
 
-### Getting Started
+## Development Tools
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd real-screen-reader
-   ```
+### Audio Testing Utility
+Located in `tools/audio-test/`, this utility helps test audio streaming from the VM to a browser on your host machine:
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+1. Features:
+   - HTTP streaming for reliable cross-platform audio delivery
+   - Browser-based test interface
+   - Real-time file monitoring
+   - Audio file playback
 
-3. Create and activate conda environment:
+2. Usage:
    ```bash
-   conda create -n screen-reader python=3.8
+   # From project root
    conda activate screen-reader
+   npm run test-audio
    ```
 
-4. Start the application:
-   ```bash
-   ./start.sh
-   ```
+3. Access:
+   - Open `http://<vm-ip>:3000` in your browser
+   - View and play generated audio files
+   - Monitor new files as they're created
 
-## Project Structure
-```
-real-screen-reader/
-├── main.js              # Electron main process
-├── renderer.js          # Electron renderer process
-├── region-selector.js   # Region selection functionality
-├── index.html          # Main application window
-├── styles.css          # Application styles
-├── start.sh           # Application startup script
-└── src/
-    └── ocr.js         # OCR functionality
-```
+4. File Locations:
+   - Generated audio: `/tmp/real-screen-reader-test/*.wav`
+   - Test interface: `tools/audio-test/public/index.html`
+   - Server code: `tools/audio-test/test-browser-stream.js`
 
-## For AI Agents
+## Data Flow
 
-### Project Context
-This project aims to create a screen reader that's more flexible and user-friendly than traditional screen readers. The key differentiator is the ability to select and read specific regions of the screen rather than entire elements or windows.
+### Main Application Flow
+1. User selects screen region
+2. Region is captured as image
+3. OCR extracts text from image
+4. Text is sent to TTS engine
+5. Audio is generated and saved
+6. Audio is played through browser
 
-### Technical Decisions
-1. **Electron vs Tauri**: Migrated from Tauri to Electron due to:
-   - More mature screen capture APIs
-   - Better documentation and community support
-   - Easier integration with native features
-   - Better support for transparent windows and region selection
+### Audio Generation Flow
+1. Text from OCR → TTS Manager
+2. TTS Manager → Piper TTS Provider
+3. Piper generates WAV audio
+4. Audio saved to `/tmp/real-screen-reader-test/`
+5. File available for playback via:
+   - Direct browser playback
+   - Audio test server streaming
 
-2. **Audio Streaming**: Chose PulseAudio over SPICE for VM audio streaming:
-   - More reliable cross-platform support, especially for macOS
-   - Better control over audio routing and configuration
-   - Simpler setup through SSH tunneling
-   - Consistent audio quality across different environments
-
-3. **Architecture**:
-   - Main process (`main.js`) handles window management and IPC
-   - Renderer process (`renderer.js`) manages UI and user interactions
-   - Region selector runs in a separate transparent window
-   - OCR processing handled in a dedicated module
-
-4. **Coordinate System**:
-   - Uses screen's work area to handle system UI elements
-   - Accounts for multi-monitor setups
-   - Properly scales coordinates between different contexts
-
-### Development Guidelines
-1. **Code Style**:
-   - Use modern JavaScript/TypeScript features
-   - Maintain clear separation between main and renderer processes
-   - Document IPC communication patterns
-   - Add comments for complex logic
-
-2. **UI/UX Principles**:
-   - Keep the interface minimal and non-intrusive
-   - Provide clear visual feedback for user actions
-   - Ensure accessibility in the UI itself
-   - Use consistent styling defined in `styles.css`
-
-3. **Testing Considerations**:
-   - Test on different Linux distributions
-   - Verify screen capture in various scenarios
-   - Check memory usage during extended sessions
-   - Validate accessibility features
-   - Test with different monitor configurations
-
-### Current Challenges
-1. **OCR Accuracy**:
-   - Need to improve text recognition accuracy
-   - Consider preprocessing steps for better results
-   - Handle different text colors and backgrounds
-
-2. **Performance**:
-   - Optimize screen capture frequency
-   - Reduce memory usage during continuous capture
-   - Handle large regions efficiently
-
-3. **UI Improvements**:
-   - Add more window controls (minimize, maximize)
-   - Improve region selection visual feedback
-   - Add keyboard shortcuts for common actions
-
-### Next Steps
-1. **OCR Enhancements**:
-   - Add image preprocessing options
-   - Implement text post-processing
-   - Add support for different languages
-   - Optimize OCR performance
-
-2. **Text-to-Speech**:
-   - Research and select TTS engine
-   - Implement voice selection
-   - Add reading speed controls
-   - Support natural-sounding pronunciation
-   - Handle different languages
-
-3. **User Experience**:
-   - Add keyboard shortcuts
-   - Implement region presets/favorites
-   - Create settings panel
-   - Add progress indicators
-   - Improve error handling and user feedback
-
-4. **Performance Optimization**:
-   - Implement caching for frequently read regions
-   - Optimize screen capture
-   - Add batch processing for multiple regions
-   - Improve memory management
+For more detailed documentation, see:
+- [Application Flow](docs/application-flow.md)
+- [Audio Setup](docs/audio-setup.md)
 
 ## Contributing
-Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

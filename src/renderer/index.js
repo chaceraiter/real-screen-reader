@@ -3,10 +3,11 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-let isPlaying = false;
-let speed = 1.0;
 let currentStream = null;
 let currentVideoTrack = null;
+let currentAudioData = null;
+let currentAudioUrl = null;
+let currentAudio = null;
 
 // Create debug log container
 function createDebugContainer() {
@@ -41,59 +42,17 @@ function debugLog(message, error = false) {
     console.log(`[${timestamp}] ${message}`);
 }
 
-// Control buttons
-document.getElementById('playBtn').addEventListener('click', () => {
-    isPlaying = !isPlaying;
-    const playBtn = document.getElementById('playBtn');
-    playBtn.textContent = isPlaying ? '⏸' : '▶';
-    
-    const video = document.querySelector('video');
-    if (video) {
-        if (isPlaying) {
-            video.play();
-        } else {
-            video.pause();
-        }
-    }
-});
-
-document.getElementById('stopBtn').addEventListener('click', () => {
-    isPlaying = false;
-    document.getElementById('playBtn').textContent = '▶';
-    
-    const video = document.querySelector('video');
-    if (video) {
-        video.pause();
-        video.currentTime = 0;
-    }
-});
-
-document.getElementById('slowBtn').addEventListener('click', () => {
-    speed = Math.max(0.5, speed - 0.1);
-    updatePlaybackSpeed();
-});
-
-document.getElementById('fastBtn').addEventListener('click', () => {
-    speed = Math.min(2.0, speed + 0.1);
-    updatePlaybackSpeed();
-});
-
-function updatePlaybackSpeed() {
-    const video = document.querySelector('video');
-    if (video) {
-        video.playbackRate = speed;
-    }
-    document.getElementById('speedDisplay').textContent = speed.toFixed(1) + 'x';
+// Show error message
+function showError(message) {
+    debugLog(message, true);
+    // You could also show a more visible error message to the user here
 }
-
-document.getElementById('settingsBtn').addEventListener('click', () => {
-    // TODO: Implement settings menu
-    console.log('Settings clicked');
-});
 
 // Region selection
 document.getElementById('selectRegion').addEventListener('click', async () => {
     try {
+        debugLog('Starting region selection...');
+        
         // Stop any existing capture
         if (currentVideoTrack) {
             currentVideoTrack.stop();
@@ -206,9 +165,11 @@ ipcRenderer.on('region-selected', async (event, bounds) => {
         preview.src = canvas.toDataURL();
         debugLog('Updated preview image with cropped region');
 
-        // Enable the start reading button
-        const startReadingBtn = document.getElementById('startReading');
-        startReadingBtn.disabled = false;
+        // Enable the recognize text button
+        const recognizeTextBtn = document.getElementById('recognizeText');
+        const generateSpeechBtn = document.getElementById('generateSpeech');
+        const playAudioBtn = document.getElementById('playAudio');
+        recognizeTextBtn.disabled = false;
 
         debugLog('Region capture setup complete');
     } catch (error) {
@@ -218,8 +179,8 @@ ipcRenderer.on('region-selected', async (event, bounds) => {
     }
 });
 
-// Start reading (OCR) button
-document.getElementById('startReading').addEventListener('click', async function() {
+// Recognize Text button
+document.getElementById('recognizeText').addEventListener('click', async function() {
     try {
         debugLog('Starting OCR process');
         
@@ -233,10 +194,15 @@ document.getElementById('startReading').addEventListener('click', async function
             throw new Error('Preview or canvas not found');
         }
 
-        // Disable the button and show processing state
-        const startReadingBtn = document.getElementById('startReading');
-        startReadingBtn.disabled = true;
-        startReadingBtn.textContent = 'Processing...';
+        // Disable buttons and show processing state
+        const recognizeTextBtn = document.getElementById('recognizeText');
+        const generateSpeechBtn = document.getElementById('generateSpeech');
+        const playAudioBtn = document.getElementById('playAudio');
+        
+        recognizeTextBtn.disabled = true;
+        generateSpeechBtn.disabled = true;
+        playAudioBtn.disabled = true;
+        recognizeTextBtn.textContent = 'Processing...';
 
         // Create status element if it doesn't exist
         let statusElement = document.querySelector('.ocr-status');
@@ -302,6 +268,21 @@ document.getElementById('startReading').addEventListener('click', async function
                 resultsContainer.textContent = result.text || 'No text detected';
                 statusElement.textContent = result.text.trim() ? 'OCR completed!' : 'No text detected in the image';
                 debugLog('Updated results container with OCR text');
+
+                // Enable generate speech if text was detected
+                generateSpeechBtn.disabled = !result.text.trim();
+                playAudioBtn.disabled = true;
+
+                // Clear any existing audio data
+                if (currentAudioUrl) {
+                    URL.revokeObjectURL(currentAudioUrl);
+                }
+                currentAudioData = null;
+                currentAudioUrl = null;
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio = null;
+                }
             } else {
                 throw new Error(result.error || 'OCR failed');
             }
@@ -326,21 +307,156 @@ document.getElementById('startReading').addEventListener('click', async function
             statusElement.style.color = '#ff6b6b';
         }
     } finally {
-        // Re-enable the button
-        const startReadingBtn = document.getElementById('startReading');
-        startReadingBtn.disabled = false;
-        startReadingBtn.textContent = 'Start Reading';
+        recognizeTextBtn.disabled = false;
+        recognizeTextBtn.textContent = 'Recognize Text';
     }
 });
 
-// Error handling
-function showError(message) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-    
-    document.body.appendChild(errorDiv);
-    setTimeout(() => {
-        errorDiv.remove();
-    }, 3000);
-} 
+// Generate Speech button
+document.getElementById('generateSpeech').addEventListener('click', async function() {
+    try {
+        const resultsContainer = document.querySelector('.ocr-results');
+        if (!resultsContainer) {
+            throw new Error('No text available to synthesize');
+        }
+
+        const text = resultsContainer.textContent;
+        if (!text.trim()) {
+            throw new Error('No text available to synthesize');
+        }
+
+        // Disable buttons and show processing state
+        const generateSpeechBtn = document.getElementById('generateSpeech');
+        const playAudioBtn = document.getElementById('playAudio');
+        generateSpeechBtn.disabled = true;
+        playAudioBtn.disabled = true;
+        generateSpeechBtn.textContent = 'Generating...';
+
+        // Update status
+        let statusElement = document.querySelector('.ocr-status');
+        if (statusElement) {
+            statusElement.textContent = 'Generating speech...';
+            statusElement.style.color = '';
+        }
+
+        // Clear any existing audio data
+        if (currentAudioUrl) {
+            URL.revokeObjectURL(currentAudioUrl);
+        }
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio = null;
+        }
+
+        // Request speech synthesis
+        debugLog('Requesting speech synthesis');
+        const result = await ipcRenderer.invoke('speak-text', text);
+        
+        if (result.success) {
+            // Store the audio data
+            currentAudioData = result.audioData;
+            
+            // Create new blob and URL for browser playback
+            const blob = new Blob([currentAudioData], { type: 'audio/wav' });
+            currentAudioUrl = URL.createObjectURL(blob);
+            
+            // Save to test directory for the audio test server
+            const testDir = path.join(os.tmpdir(), 'real-screen-reader-test');
+            if (!fs.existsSync(testDir)) {
+                fs.mkdirSync(testDir, { recursive: true });
+            }
+            const timestamp = Date.now();
+            const audioFile = path.join(testDir, `tts-${timestamp}.wav`);
+            fs.writeFileSync(audioFile, Buffer.from(currentAudioData));
+            debugLog(`Saved audio file for testing: ${audioFile}`);
+            
+            // Enable play button
+            playAudioBtn.disabled = false;
+            
+            if (statusElement) {
+                statusElement.textContent = 'Speech generated successfully';
+            }
+        } else {
+            throw new Error(result.error || 'Failed to generate speech');
+        }
+    } catch (error) {
+        console.error('Failed to generate speech:', error);
+        showError('Failed to generate speech: ' + error.message);
+        
+        let statusElement = document.querySelector('.ocr-status');
+        if (statusElement) {
+            statusElement.textContent = 'Error generating speech';
+            statusElement.style.color = '#ff6b6b';
+        }
+    } finally {
+        const generateSpeechBtn = document.getElementById('generateSpeech');
+        generateSpeechBtn.disabled = false;
+        generateSpeechBtn.textContent = 'Generate Speech';
+    }
+});
+
+// Play Audio button
+document.getElementById('playAudio').addEventListener('click', async function() {
+    try {
+        if (!currentAudioUrl) {
+            throw new Error('No audio available to play');
+        }
+
+        const playAudioBtn = document.getElementById('playAudio');
+        playAudioBtn.disabled = true;
+        
+        // Create and play audio
+        currentAudio = new Audio(currentAudioUrl);
+        
+        currentAudio.onended = () => {
+            playAudioBtn.disabled = false;
+            let statusElement = document.querySelector('.ocr-status');
+            if (statusElement) {
+                statusElement.textContent = 'Playback completed';
+            }
+        };
+
+        currentAudio.onerror = (error) => {
+            debugLog('Audio playback error: ' + error, true);
+            let statusElement = document.querySelector('.ocr-status');
+            if (statusElement) {
+                statusElement.textContent = 'Error playing audio';
+                statusElement.style.color = '#ff6b6b';
+            }
+            playAudioBtn.disabled = false;
+        };
+
+        // Start playback
+        let statusElement = document.querySelector('.ocr-status');
+        if (statusElement) {
+            statusElement.textContent = 'Playing audio...';
+        }
+        await currentAudio.play();
+        debugLog('Started audio playback');
+    } catch (error) {
+        console.error('Failed to play audio:', error);
+        showError('Failed to play audio: ' + error.message);
+        
+        let statusElement = document.querySelector('.ocr-status');
+        if (statusElement) {
+            statusElement.textContent = 'Error playing audio';
+            statusElement.style.color = '#ff6b6b';
+        }
+        
+        const playAudioBtn = document.getElementById('playAudio');
+        playAudioBtn.disabled = false;
+    }
+});
+
+// Cleanup function for when window is closed
+window.addEventListener('beforeunload', () => {
+    // Clean up audio resources
+    if (currentAudioUrl) {
+        URL.revokeObjectURL(currentAudioUrl);
+    }
+    if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+    }
+    currentAudioData = null;
+}); 

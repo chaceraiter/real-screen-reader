@@ -2,20 +2,72 @@
   "name": "real-screen-reader",
   "version": "1.0.0",
   "description": "A screen reader application",
-  "main": "main.js",
+  "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
     "build": "electron-builder build",
-    "package": "electron-builder --dir"
+    "build:mac": "electron-builder build --mac",
+    "package": "electron-builder --dir",
+    "test-audio": "node tools/audio-test/test-browser-stream.js",
+    "docker:dev": "scripts/dev.sh",
+    "setup": "scripts/setup.sh"
   },
   "build": {
     "appId": "com.real-screen-reader",
+    "productName": "Real Screen Reader",
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
+      "!**/node_modules/*.d.ts",
+      "!**/node_modules/.bin",
+      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
+      "!.editorconfig",
+      "!**/._*",
+      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
+      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
+      "!**/{appveyor.yml,.travis.yml,circle.yml}",
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+    ],
+    "extraResources": [
+      {
+        "from": "src/tts/voices",
+        "to": "voices",
+        "filter": ["*.onnx"]
+      }
+    ],
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.utilities",
+      "icon": "build/icon.icns",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
     "linux": {
-      "target": [
-        "AppImage"
-      ],
+      "target": ["AppImage"],
       "category": "Utility"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     }
   },
   "devDependencies": {
@@ -24,6 +76,7 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "express": "^5.1.0",
     "node-tesseract-ocr": "^2.2.1",
     "speaker": "^0.5.5",
     "tesseract.js": "^6.0.1"

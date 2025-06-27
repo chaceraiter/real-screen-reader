@@ -41,6 +41,8 @@ coverage/
 tmp/
 temp/
 *.tmp
+/tmp/real-screen-reader-test/
+/tmp/real-screen-reader-tts/
 
 # Conda
 conda-env/
@@ -53,8 +55,12 @@ user-settings.json
 # Vite
 .vite/
 
-# Eng. traineddata
-eng.traineddata
+# Development tools
+tools/
 
-# Development auxiliary tools
-dev-aux/ 
+# Audio test files
+test-audio.wav
+*.wav
+
+# Eng. traineddata
+eng.traineddata 
