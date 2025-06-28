@@ -15,8 +15,17 @@ class PiperTTSProvider extends TTSProvider {
         this.currentVoice = null;
         this.pythonProcess = null;
         this.tempDir = path.join(os.tmpdir(), 'real-screen-reader-tts');
-        this.voiceModelPath = path.join(__dirname, '..', 'voices', 'en_US-lessac-medium.onnx');
+        this.voiceModelPath = path.join(__dirname, '..', 'voices', 'en_US-ljspeech-high.onnx');
         this.scriptFile = path.join(this.tempDir, 'synthesize.py');
+    }
+
+    /**
+     * Get the model name from the voice model path
+     * @returns {string} The model name without extension
+     */
+    getModelName() {
+        const basename = path.basename(this.voiceModelPath);
+        return basename.replace('.onnx', '');
     }
 
     async initialize() {
@@ -40,13 +49,16 @@ import numpy as np
 
 text = sys.argv[1]
 model_path = sys.argv[2]
+output_path = sys.argv[3]
 
 # Initialize Piper with our local voice model
 voice = PiperVoice.load(model_path)
 
-# Synthesize speech and get raw audio data
-for audio_chunk in voice.synthesize_stream_raw(text):
-    sys.stdout.buffer.write(audio_chunk)
+# Synthesize speech and save to file
+audio_data = voice.synthesize_stream_raw(text)
+with open(output_path, 'wb') as f:
+    for chunk in audio_data:
+        f.write(chunk)
             `.trim();
 
             await fs.writeFile(this.scriptFile, pythonScript);
@@ -82,15 +94,15 @@ for audio_chunk in voice.synthesize_stream_raw(text):
         }
 
         try {
-            // Run the Python script and collect audio data
-            const audioChunks = [];
-            await new Promise((resolve, reject) => {
-                const process = spawn('python', [this.scriptFile, text, this.voiceModelPath]);
-                
-                process.stdout.on('data', (data) => {
-                    audioChunks.push(data);
-                });
+            // Create a unique filename with model name and timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const modelName = this.getModelName();
+            const outputPath = path.join(this.tempDir, `tts-${modelName}-${timestamp}.wav`);
 
+            // Run the Python script to generate audio file
+            await new Promise((resolve, reject) => {
+                const process = spawn('python', [this.scriptFile, text, this.voiceModelPath, outputPath]);
+                
                 let errorOutput = '';
                 process.stderr.on('data', (data) => {
                     errorOutput += data.toString();
@@ -110,8 +122,9 @@ for audio_chunk in voice.synthesize_stream_raw(text):
                 });
             });
 
-            // Combine audio chunks into a single buffer
-            return Buffer.concat(audioChunks);
+            // Read the generated audio file
+            const audioData = await fs.readFile(outputPath);
+            return audioData;
         } catch (error) {
             console.error('Failed to synthesize speech:', error);
             throw error;

@@ -63,4 +63,8 @@ test-audio.wav
 *.wav
 
 # Eng. traineddata
-eng.traineddata 
+eng.traineddata
+
+# Voice models
+src/main/tts/voices/*.onnx
+src/main/tts/voices/*.onnx.json 
