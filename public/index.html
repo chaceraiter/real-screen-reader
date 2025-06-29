@@ -7,14 +7,20 @@
 <body>
     <div class="container">
         <h1>Real Screen Reader</h1>
-        <div class="button-container">
-            <button id="selectRegion">Select<br>Region</button>
-            <button id="recognizeText" disabled>Recognize<br>Text</button>
-            <button id="generateSpeech" disabled>Generate<br>Speech</button>
-            <button id="playAudio" disabled>Play<br>Audio</button>
+        <div class="minimal-controls">
+            <button id="audioControl" title="Play/Pause" disabled>▶</button>
+            <button id="selectRegion">Select Region</button>
+            <select id="voiceSelect" title="Select Voice Model">
+                <option value="default">Default Voice</option>
+            </select>
         </div>
         <div class="preview-container"></div>
     </div>
-    <script src="../src/renderer/index.js"></script>
+    <script>
+        // Wait for DOM to be ready before loading main script
+        document.addEventListener('DOMContentLoaded', () => {
+            require('../src/renderer/index.js');
+        });
+    </script>
 </body>
 </html> 

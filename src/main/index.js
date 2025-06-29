@@ -3,6 +3,7 @@ const path = require('path');
 const RegionSelector = require('./window/region-selector');
 const ocrManager = require('../ocr');
 const ttsManager = require('./tts');
+const voiceManager = require('./tts/voice-manager');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -28,7 +29,7 @@ function createWindow() {
   // Create the browser window.
   const win = new BrowserWindow({
     width: 400,
-    height: 200, // Reduced height to match new compact layout
+    height: 120, // Reduced height for more compact layout
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -137,6 +138,35 @@ function createWindow() {
     } catch (error) {
       console.error('TTS error:', error);
       return { success: false, error: error.message };
+    }
+  });
+
+  // Handle get voice models request
+  ipcMain.handle('get-voice-models', async () => {
+    try {
+      console.log('Getting available voice models...');
+      const voices = await voiceManager.loadVoiceModels();
+      console.log('Found voice models:', voices.map(v => v.name));
+      return voices.map(voice => ({
+        id: voice.id,
+        name: voice.name,
+        language: voice.language
+      }));
+    } catch (error) {
+      console.error('Error getting voice models:', error);
+      throw error;
+    }
+  });
+
+  // Handle set voice model request
+  ipcMain.handle('set-voice-model', async (event, voiceId) => {
+    try {
+      console.log('Setting voice model:', voiceId);
+      await ttsManager.provider.setVoice(voiceId);
+      return { success: true };
+    } catch (error) {
+      console.error('Error setting voice model:', error);
+      throw error;
     }
   });
 }

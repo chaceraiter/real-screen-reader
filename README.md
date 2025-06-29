@@ -2,34 +2,78 @@
 
 A screen reader application built with Electron that provides text-to-speech functionality for selected screen regions.
 
+## Quick Installation
+
+### One-Click Installation (Recommended)
+1. Download this repository
+2. Open a terminal in the repository directory
+3. Run:
+   ```bash
+   ./scripts/install.sh
+   ```
+   This script will:
+   - Install Docker if needed
+   - Set up all necessary permissions
+   - Start the application
+
+The application will start automatically after installation.
+
+### Manual Installation
+If you prefer to set things up manually:
+
+1. Install Docker and docker-compose
+2. Clone this repository
+3. Run:
+   ```bash
+   docker-compose up --build
+   ```
+
+## Development Mode
+
+For development, you can access the audio test interface:
+1. The audio test server runs at: `http://localhost:3000`
+2. This provides a web interface for testing audio output
+3. Useful for debugging and development
+
+## Stopping the Application
+
+To stop the application:
+```bash
+docker-compose down
+```
+
+## Viewing Logs
+
+To view application logs:
+```bash
+docker-compose logs -f
+```
+
 ## Quick Start
 
-### Running the Main Application
-1. Activate the conda environment:
+### Running the Main Application and Audio Server
+
+1. Start the audio test server:
    ```bash
-   conda activate screen-reader
+   # Important: Activate the conda environment and run the server in the same command
+   conda activate screen-reader && npm run test-audio
    ```
 
-2. Start the application:
+2. In another terminal, launch the main application:
    ```bash
    ./scripts/start.sh
-   ```
-
-### Running the Audio Test Server
-1. Activate the conda environment:
-   ```bash
-   conda activate screen-reader
-   ```
-
-2. Start the test server:
-   ```bash
-   npm run test-audio
    ```
 
 3. Access the test interface:
    ```
    http://<vm-ip>:3000
    ```
+
+Important Notes:
+- Always run conda activation and npm commands in the same command string (using &&)
+- The main application and audio server must run in separate terminals
+- The start.sh script handles conda activation automatically
+- All commands must be run from the project root directory
 
 ## Project Structure
 
@@ -84,9 +128,9 @@ real-screen-reader/
    ```
 
 2. Create and activate conda environment:
-   ```bash
+     ```bash
    conda create -n screen-reader python=3.8
-   conda activate screen-reader
+     conda activate screen-reader
    ```
 
 3. Install dependencies:

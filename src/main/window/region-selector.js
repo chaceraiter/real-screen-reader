@@ -45,7 +45,8 @@ class RegionSelector {
                     backgroundThrottling: false,
                     offscreen: false
                 },
-                type: 'toolbar'  // This helps with transparency on Linux
+                fullscreen: process.platform === 'linux',
+                simpleFullscreen: process.platform === 'linux'
             });
             console.log('Selector window created');
 
@@ -53,6 +54,10 @@ class RegionSelector {
             this.selectorWindow.setAlwaysOnTop(true, 'screen-saver');
             this.selectorWindow.setVisibleOnAllWorkspaces(true);
             this.selectorWindow.setIgnoreMouseEvents(false);
+            
+            // Focus the window immediately
+            this.selectorWindow.focus();
+            
             console.log('Window settings applied');
 
             // Load the selection HTML
@@ -68,21 +73,17 @@ class RegionSelector {
             // Log when the window is ready
             this.selectorWindow.once('ready-to-show', () => {
                 console.log('Region selector window ready to show');
+                // Focus again after window is ready
+                this.selectorWindow.focus();
             });
             
             // Handle selection complete
             ipcMain.once('selection-complete', (event, bounds) => {
                 console.log('Selection complete received:', bounds);
                 if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-                    // Adjust bounds to account for work area offset
-                    const adjustedBounds = {
-                        x: bounds.x + x,
-                        y: bounds.y + y,
-                        width: bounds.width,
-                        height: bounds.height
-                    };
-                    console.log('Sending adjusted bounds to main window:', adjustedBounds);
-                    this.mainWindow.webContents.send('region-selected', adjustedBounds);
+                    // Send bounds directly without re-adding the work area offset
+                    console.log('Sending bounds to main window:', bounds);
+                    this.mainWindow.webContents.send('region-selected', bounds);
                 } else {
                     console.error('Main window not available for selection complete');
                 }
