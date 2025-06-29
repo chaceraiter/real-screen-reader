@@ -4,11 +4,53 @@
  */
 const Speaker = require('speaker');
 const PiperTTSProvider = require('./providers/piper');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+// Constants
+const MAX_TEST_FILES = 10;
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 class TTSManager {
     constructor() {
         this.provider = new PiperTTSProvider();
         this.isInitialized = false;
+        this.testDir = path.join(os.tmpdir(), 'real-screen-reader-test');
+        this.speaker = null;
+        console.log('TTS Manager initialized with test directory:', this.testDir);
+        
+        // Ensure test directory exists in development mode
+        if (isDevelopment && !fs.existsSync(this.testDir)) {
+            console.log('Creating test directory...');
+            fs.mkdirSync(this.testDir, { recursive: true });
+        }
+    }
+
+    async cleanupOldTestFiles() {
+        if (!isDevelopment) return;
+
+        try {
+            const files = fs.readdirSync(this.testDir)
+                .filter(file => file.endsWith('.wav'))
+                .map(file => ({
+                    name: file,
+                    path: path.join(this.testDir, file),
+                    time: fs.statSync(path.join(this.testDir, file)).mtime.getTime()
+                }))
+                .sort((a, b) => b.time - a.time); // Sort by newest first
+
+            // Remove old files if we exceed the limit
+            if (files.length > MAX_TEST_FILES) {
+                const filesToRemove = files.slice(MAX_TEST_FILES);
+                for (const file of filesToRemove) {
+                    fs.unlinkSync(file.path);
+                    console.log('Removed old test file:', file.name);
+                }
+            }
+        } catch (error) {
+            console.error('Error cleaning up old test files:', error);
+        }
     }
 
     async initialize() {
@@ -17,27 +59,43 @@ class TTSManager {
         try {
             await this.provider.initialize();
             this.isInitialized = true;
-            console.log('TTS initialized successfully');
+            console.log('TTS Manager initialized successfully');
         } catch (error) {
-            console.error('Error initializing TTS:', error);
+            console.error('Failed to initialize TTS:', error);
             throw error;
         }
     }
 
-    async synthesize(text) {
+    async speak(text) {
         if (!this.isInitialized) {
             await this.initialize();
         }
 
         try {
+            console.log('Starting synthesis for text:', text.substring(0, 50) + '...');
             const audioData = await this.provider.synthesize(text);
+            console.log('Got audio data, length:', audioData.length);
             
             // Create WAV header for the raw audio data
             const header = this.createWavHeader(22050, 16, 1, audioData.length);
-            return Buffer.concat([header, audioData]);
+            const wavData = Buffer.concat([header, audioData]);
+            
+            // Create a new speaker for this playback
+            this.speaker = new Speaker({
+                channels: 1,           // mono
+                bitDepth: 16,         // 16-bit
+                sampleRate: 22050,    // sample rate for Piper
+                signed: true          // signed
+            });
+
+            // Play the audio
+            this.speaker.write(wavData);
+            this.speaker.end();
+            
+            return { success: true };
         } catch (error) {
             console.error('Error during speech synthesis:', error);
-            throw error;
+            return { success: false, error: error.message };
         }
     }
 
@@ -70,7 +128,7 @@ class TTSManager {
     async terminate() {
         if (this.provider) {
             try {
-                await this.provider.terminate();
+                await this.provider.cleanup();
             } catch (error) {
                 console.error('Error terminating TTS provider:', error);
             }

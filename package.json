@@ -1,17 +1,20 @@
 {
   "name": "real-screen-reader",
   "version": "1.0.0",
-  "description": "A screen reader application",
+  "description": "A screen reader application with TTS capabilities",
   "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
     "build": "electron-builder build",
     "build:mac": "electron-builder build --mac",
+    "build:linux": "electron-builder build --linux",
+    "build:win": "electron-builder build --win",
     "package": "electron-builder --dir",
     "test-audio": "node tools/audio-test/test-browser-stream.js",
     "docker:dev": "scripts/dev.sh",
-    "setup": "scripts/setup.sh"
+    "setup": "scripts/setup.sh",
+    "postinstall": "scripts/setup.sh"
   },
   "build": {
     "appId": "com.real-screen-reader",
@@ -21,24 +24,18 @@
       "output": "dist"
     },
     "files": [
-      "**/*",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!**/node_modules/*.d.ts",
-      "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+      "src/**/*",
+      "public/**/*",
+      "resources/**/*",
+      "tools/**/*",
+      "scripts/**/*",
+      "package.json"
     ],
     "extraResources": [
       {
-        "from": "src/tts/voices",
-        "to": "voices",
-        "filter": ["*.onnx"]
+        "from": "resources",
+        "to": "resources",
+        "filter": ["*.traineddata", "*.onnx"]
       }
     ],
     "mac": {
@@ -52,8 +49,19 @@
       "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "linux": {
-      "target": ["AppImage"],
-      "category": "Utility"
+      "target": ["AppImage", "deb"],
+      "category": "Utility",
+      "maintainer": "Real Screen Reader Team",
+      "description": "Screen reader with TTS capabilities",
+      "desktop": {
+        "Name": "Real Screen Reader",
+        "Comment": "Screen reader with TTS capabilities",
+        "Categories": "Utility;Accessibility;"
+      }
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "build/icon.ico"
     },
     "dmg": {
       "contents": [

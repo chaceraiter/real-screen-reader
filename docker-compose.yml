@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - .:/app:ro  # Read-only mount
+      - node_modules:/app/node_modules
+      # X11 socket for display with restricted permissions
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+    environment:
+      - DISPLAY=${DISPLAY}
+      # Development mode
+      - NODE_ENV=development
+      # Set a non-root user
+      - USER_UID=${UID:-1000}
+      - USER_GID=${GID:-1000}
+    security_opt:
+      - no-new-privileges:true
+    # Use specific capabilities instead of privileged mode
+    cap_add:
+      - SYS_ADMIN  # For screen capture
+    devices:
+      - /dev/dri:/dev/dri  # For hardware acceleration
+    # Use specific ports instead of host network
+    ports:
+      - "127.0.0.1:3000:3000"  # Audio test server, only accessible locally
+
+volumes:
+  node_modules: 

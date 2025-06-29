@@ -3,6 +3,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs').promises;
 const os = require('os');
+const voiceManager = require('../voice-manager');
 
 /**
  * Piper TTS provider implementation
@@ -15,7 +16,6 @@ class PiperTTSProvider extends TTSProvider {
         this.currentVoice = null;
         this.pythonProcess = null;
         this.tempDir = path.join(os.tmpdir(), 'real-screen-reader-tts');
-        this.voiceModelPath = path.join(__dirname, '..', 'voices', 'en_US-ljspeech-high.onnx');
         this.scriptFile = path.join(this.tempDir, 'synthesize.py');
     }
 
@@ -24,7 +24,7 @@ class PiperTTSProvider extends TTSProvider {
      * @returns {string} The model name without extension
      */
     getModelName() {
-        const basename = path.basename(this.voiceModelPath);
+        const basename = path.basename(this.currentVoice.options.modelPath);
         return basename.replace('.onnx', '');
     }
 
@@ -33,11 +33,17 @@ class PiperTTSProvider extends TTSProvider {
             // Create temp directory if it doesn't exist
             await fs.mkdir(this.tempDir, { recursive: true });
             
-            // Check if voice model exists
-            try {
-                await fs.access(this.voiceModelPath);
-            } catch (error) {
-                throw new Error(`Voice model not found at ${this.voiceModelPath}`);
+            // Load available voices
+            await voiceManager.loadVoiceModels();
+            
+            // Set default voice if none is set
+            if (!this.currentVoice) {
+                const voices = await voiceManager.loadVoiceModels();
+                if (voices.length > 0) {
+                    await this.setVoice(voices[0].id);
+                } else {
+                    throw new Error('No voice models found');
+                }
             }
             
             // Create the Python script that uses Piper TTS
@@ -88,9 +94,29 @@ with open(output_path, 'wb') as f:
         }
     }
 
+    async setVoice(voiceId) {
+        const voice = voiceManager.getVoice(voiceId);
+        if (!voice) {
+            throw new Error(`Voice model ${voiceId} not found`);
+        }
+        
+        const modelPath = voice.options.modelPath;
+        try {
+            await fs.access(modelPath);
+            this.currentVoice = voice;
+            console.log(`Voice set to ${voice.name}`);
+        } catch (error) {
+            throw new Error(`Voice model file not found at ${modelPath}`);
+        }
+    }
+
     async synthesize(text) {
         if (!this.initialized) {
             throw new Error('Provider not initialized');
+        }
+
+        if (!this.currentVoice) {
+            throw new Error('No voice model selected');
         }
 
         try {
@@ -101,8 +127,13 @@ with open(output_path, 'wb') as f:
 
             // Run the Python script to generate audio file
             await new Promise((resolve, reject) => {
-                const process = spawn('python', [this.scriptFile, text, this.voiceModelPath, outputPath]);
-                
+                const process = spawn('python', [
+                    this.scriptFile,
+                    text,
+                    this.currentVoice.options.modelPath,
+                    outputPath
+                ]);
+
                 let errorOutput = '';
                 process.stderr.on('data', (data) => {
                     errorOutput += data.toString();

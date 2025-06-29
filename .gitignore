@@ -8,6 +8,9 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
+.env.test
 
 # Build output
 dist/
@@ -51,6 +54,18 @@ conda-env/
 # Application specific
 .ocr-cache/
 user-settings.json
+config.json
+*.config.json
+
+# Security and keys
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.keystore
+*.jks
 
 # Vite
 .vite/
@@ -67,4 +82,9 @@ eng.traineddata
 
 # Voice models
 src/main/tts/voices/*.onnx
-src/main/tts/voices/*.onnx.json 
+src/main/tts/voices/*.onnx.json
+
+# Local development overrides
+*.local
+*.local.*
+.local/ 

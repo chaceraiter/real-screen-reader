@@ -47,34 +47,25 @@ The Real Screen Reader uses a browser-based audio streaming approach for reliabl
 - Piper TTS (included in conda environment)
 - Modern web browser
 
-### 2. Running the Test Server
-1. Activate the conda environment:
+### 2. Starting the Application Stack
+1. Start the audio test server:
    ```bash
-   conda activate screen-reader
+   # Important: Activate the conda environment and run the server in the same command
+   conda activate screen-reader && npm run test-audio
    ```
 
-2. Start the server:
-   ```bash
-   npm run test-audio
-   ```
-
-3. Server will start at:
-   ```
-   http://0.0.0.0:3000
-   ```
-
-### 3. Testing Audio Generation
-1. Launch the main application:
+2. In another terminal, launch the main application:
    ```bash
    ./scripts/start.sh
    ```
 
-2. Use the application to:
-   - Select a screen region
-   - Generate speech from text
-   - Audio files will be saved to `/tmp/real-screen-reader-test/`
+Important Notes:
+- Always run conda activation and npm commands in the same command string (using &&)
+- The main application and audio server must run in separate terminals
+- The start.sh script handles conda activation automatically
+- All commands must be run from the project root directory
 
-### 4. Testing Audio Playback
+### 3. Accessing the Audio Interface
 1. Open the test interface in your browser:
    ```
    http://<vm-ip>:3000
