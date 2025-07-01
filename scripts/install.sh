@@ -89,7 +89,7 @@ install_docker_mac() {
         if ! verify_download "$brew_url" "$brew_hash" | bash; then
             echo "Error: Homebrew installation script verification failed"
             exit 1
-        }
+        fi
         
         # Add Homebrew to PATH for the current session
         eval "$(/opt/homebrew/bin/brew shellenv)" || eval "$(/usr/local/bin/brew shellenv)"
